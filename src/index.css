@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/* Prevents a flash of the browser's default white background from
+   showing through on mobile, where 100vh briefly overshoots the real
+   visible viewport (address bar collapsing/expanding mid-scroll). */
+html, body {
+  background-color: #050505;
+}
+
+/* ---------------------------------------------------------------- */
+/* VWorks brand color system — single source of truth for the theme */
+/* Reference these via Tailwind utilities: bg-background, text-teal, */
+/* border-border, from-teal, to-violet, etc.                         */
+/* ---------------------------------------------------------------- */
+@theme {
+  --color-background: #050505;
+  --color-surface: #0D0F10;
+  --color-foreground: #F5F5F5;
+  --color-muted: #9CA3AF;
+  --color-border: #24272A;
+  --color-teal: #16E0C4;
+  --color-violet: #8B5CF6;
+  --color-violet-light: #C084FC;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 300% 300%;
+  animation: gradientBG 10s ease infinite;
+}
+
+@layer utilities {
+  .animated-gradient {
+    background: linear-gradient(-45deg, #050505, #0D0F10, rgba(22, 224, 196, 0.12), #050505);
+    background-size: 400% 400%;
+    animation: gradientShift 12s ease infinite;
+  }
+
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+}
+
+/* Delay utilities for staggered animations */
+.delay-200 { transition-delay: 200ms; }
+.delay-300 { transition-delay: 300ms; }
+.delay-400 { transition-delay: 400ms; }
+
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.8s ease forwards;
+  opacity: 0;
+}
+
+@keyframes floating {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(0.5deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+.floating-card {
+  animation: floating 4s ease-in-out infinite;
+}
+
+
+
+@media (max-width: 640px) {
+  body > *:not(#contact):not(footer) {
+    overflow-x: clip;
+  }
+}
