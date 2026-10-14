@@ -68,8 +68,8 @@ function CompanyLogo({ src, alt, href }) {
   );
 }
 
-// Reusable component to render each experience item with animations
-function ExperienceItem({ exp, idx, total, start, end, scrollYProgress, layout }) {
+// Reusable component to render each desktop experience item with scroll-scrubbed animations
+function ExperienceItem({ exp, idx, total, start, end, scrollYProgress }) {
   // Animates the size of the marker (dot) as user scrolls
   const markerScale = useTransform(scrollYProgress, [start, end], [0, 1]);
   // Animates the opacity of the marker
@@ -79,10 +79,8 @@ function ExperienceItem({ exp, idx, total, start, end, scrollYProgress, layout }
 
   // Checks if card should be displayed above or below the timeline line
   const isAbove = idx % 2 === 0;
-  // Animates vertical movement of cards for desktop layout
+  // Animates vertical movement of cards
   const cardY = useTransform(scrollYProgress, [start, end], [isAbove ? 30 : -30, 0]);
-  // Animates horizontal movement of cards for mobile layout
-  const cardX = useTransform(scrollYProgress, [start, end], [-24, 0]);
 
   const companyLabel = exp.about ? `${exp.company} (${exp.about})` : exp.company;
   const metaLine = [companyLabel, exp.duration].join(" | ") + (exp.location ? ` · ${exp.location}` : "");
@@ -93,50 +91,62 @@ function ExperienceItem({ exp, idx, total, start, end, scrollYProgress, layout }
   const isLast = idx === total - 1;
   const hPos = isFirst ? "left-0" : isLast ? "right-0" : "left-1/2 -translate-x-1/2";
 
-  // Render for Desktop layout
-  if (layout === "desktop") {
-    return (
-      <div className="relative flex-1 flex justify-center items-center min-w-0" key={`${exp.company}-${exp.role}-${idx}`}>
-        {/* Marker dot on the timeline */}
-        <motion.div
-          className="z-10 w-7 h-7 rounded-full bg-teal shadow-[0_0_0_8px_rgba(22,224,196,0.15)]"
-          style={{ scale: markerScale, opacity: markerOpacity }}
-        />
-        {/* Small vertical line above or below the marker */}
-        <motion.div
-          className={`absolute ${isAbove ? "-top-8" : "-bottom-8"} w-[3px] bg-teal/40`}
-          style={{ height: 40, opacity: cardOpacity }}
-        />
-        {/* Experience card with role, company, duration, description */}
-        <motion.article
-          className={`absolute ${isAbove ? "bottom-10" : "top-10"} ${hPos} bg-surface/80 backdrop-blur border border-border rounded-xl p-4 lg:p-5 w-[280px] md:w-[300px] lg:w-[330px] shadow-lg`}
-          style={{ opacity: cardOpacity, y: cardY, maxWidth: "90vw" }}
-          transition={{ duration: 0.4, delay: idx * 0.15 }}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <h3 className="text-base lg:text-lg font-semibold text-foreground">{exp.role}</h3>
-            <CompanyLogo src={exp.logo} href={exp.website} alt={`${exp.company} logo`} />
-          </div>
-          <p className="text-xs text-muted mb-2">{metaLine}</p>
-          <p className="text-xs text-muted break-words leading-snug">{exp.description}</p>
-        </motion.article>
-      </div>
-    );
-  }
-
-  // Render for Mobile layout
   return (
-    <div key={`${exp.company}-${exp.role}-m-${idx}`} className="relative flex items-start">
+    <div className="relative flex-1 flex justify-center items-center min-w-0" key={`${exp.company}-${exp.role}-${idx}`}>
+      {/* Marker dot on the timeline */}
+      <motion.div
+        className="z-10 w-7 h-7 rounded-full bg-teal shadow-[0_0_0_8px_rgba(22,224,196,0.15)]"
+        style={{ scale: markerScale, opacity: markerOpacity }}
+      />
+      {/* Small vertical line above or below the marker */}
+      <motion.div
+        className={`absolute ${isAbove ? "-top-8" : "-bottom-8"} w-[3px] bg-teal/40`}
+        style={{ height: 40, opacity: cardOpacity }}
+      />
+      {/* Experience card with role, company, duration, description */}
+      <motion.article
+        className={`absolute ${isAbove ? "bottom-10" : "top-10"} ${hPos} bg-surface/80 backdrop-blur border border-border rounded-xl p-4 lg:p-5 w-[280px] md:w-[300px] lg:w-[330px] shadow-lg`}
+        style={{ opacity: cardOpacity, y: cardY, maxWidth: "90vw" }}
+        transition={{ duration: 0.4, delay: idx * 0.15 }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-base lg:text-lg font-semibold text-foreground">{exp.role}</h3>
+          <CompanyLogo src={exp.logo} href={exp.website} alt={`${exp.company} logo`} />
+        </div>
+        <p className="text-xs text-muted mb-2">{metaLine}</p>
+        <p className="text-xs text-muted break-words leading-snug">{exp.description}</p>
+      </motion.article>
+    </div>
+  );
+}
+
+// Mobile timeline item: animates in via whileInView as it naturally scrolls
+// past, instead of being scrubbed by a pinned sticky container. Pinning the
+// whole section on mobile (previous approach) fought with the inner
+// overflow-y-auto list for the scroll gesture, so the section would unpin —
+// handing scroll to the next section — before the last card finished
+// animating in, producing an abrupt cut/overlap.
+function MobileExperienceItem({ exp, idx }) {
+  const companyLabel = exp.about ? `${exp.company} (${exp.about})` : exp.company;
+  const metaLine = [companyLabel, exp.duration].join(" | ") + (exp.location ? ` · ${exp.location}` : "");
+
+  return (
+    <div className="relative flex items-start">
       {/* Marker dot on mobile timeline */}
       <motion.div
+        initial={{ scale: 0, opacity: 0 }}
+        whileInView={{ scale: 1, opacity: 1 }}
+        viewport={{ once: true, amount: 0.6 }}
+        transition={{ duration: 0.4 }}
         className="absolute -left-[14px] top-3 z-10 w-7 h-7 rounded-full bg-teal shadow-[0_0_0_8px_rgba(22,224,196,0.15)]"
-        style={{ scale: markerScale, opacity: markerOpacity }}
       />
       {/* Experience card (mobile version) */}
       <motion.article
+        initial={{ opacity: 0, x: -24 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.4, delay: idx * 0.06 }}
         className="bg-surface/80 backdrop-blur border border-border rounded-xl p-4 w-[90vw] max-w-sm ml-6 shadow-lg"
-        style={{ opacity: cardOpacity, x: cardX }}
-        transition={{ duration: 0.4, delay: idx * 0.15 }}
       >
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-base font-semibold break-words text-foreground">{exp.role}</h3>
@@ -162,10 +172,11 @@ const Experience = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Dynamic scene height based on device type and number of experiences
-  const SCENE_HEIGHT_DVH = isMobile ? 100 * experiences.length * 1.6 : 100 * experiences.length * 1.2;
+  // Dynamic scene height for the desktop scroll-scrubbed scene
+  const SCENE_HEIGHT_DVH = 100 * experiences.length * 1.2;
 
-  // Get scroll progress for animations
+  // Get scroll progress for animations (desktop only — the ref is only
+  // attached to a mounted element on desktop, see below)
   const { scrollYProgress } = useScroll({ target: sceneRef, offset: ["start start", "end end"] });
 
   // Calculate thresholds for each experience card's animation start/end
@@ -175,9 +186,36 @@ const Experience = () => {
     [numExperiences]
   );
 
-  // Animate timeline line width (desktop) and height (mobile)
+  // Animate timeline line width (desktop)
   const lineWidth = useTransform(scrollYProgress, (v) => `${v * 100}%`);
-  const lineHeight = useTransform(scrollYProgress, (v) => `${v * 100}%`);
+
+  // Mobile: plain document flow, no sticky pin / scroll-jacking — each card
+  // fades in with whileInView as it scrolls past (see MobileExperienceItem).
+  if (isMobile) {
+    return (
+      <section id="experience" className="relative bg-background text-foreground overflow-hidden px-6 py-16">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-10 -left-10 w-[360px] h-[360px] rounded-full bg-gradient-to-r from-violet to-teal opacity-15 blur-[120px] animate-pulse" />
+          <div className="absolute bottom-0 right-10 w-[420px] h-[420px] rounded-full bg-gradient-to-r from-teal to-violet opacity-15 blur-[140px] animate-pulse delay-300" />
+        </div>
+
+        <h2 className="relative z-10 text-4xl sm:text-5xl font-semibold text-center mb-10">Experience</h2>
+
+        <div className="relative z-10 w-full max-w-md mx-auto">
+          {/* Vertical timeline line */}
+          <div className="absolute left-0 top-0 bottom-0 w-[6px] bg-border rounded">
+            <div className="absolute top-0 left-0 w-[6px] h-full bg-teal rounded" />
+          </div>
+          {/* Experience items mapped for mobile */}
+          <div className="relative flex flex-col gap-8 ml-10">
+            {experiences.map((exp, idx) => (
+              <MobileExperienceItem key={`${exp.company}-${exp.role}-m-${idx}`} exp={exp} idx={idx} />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="experience" className="relative bg-background text-foreground">
@@ -197,7 +235,7 @@ const Experience = () => {
           {/* Timeline container */}
           <div className="relative z-10 flex-1 flex items-center justify-center px-6 pb-10">
             {/* Desktop Timeline */}
-            <div className="relative w-full max-w-7xl hidden md:block">
+            <div className="relative w-full max-w-7xl">
               {/* Horizontal timeline line */}
               <div className="relative h-[6px] bg-border rounded">
                 <motion.div className="absolute left-0 top-0 h-[6px] bg-teal rounded origin-left" style={{ width: lineWidth }} />
@@ -216,32 +254,6 @@ const Experience = () => {
                       start={start}
                       end={end}
                       scrollYProgress={scrollYProgress}
-                      layout="desktop"
-                    />
-                  );
-                })}
-              </div>
-            </div>
-            {/* Mobile Timeline */}
-            <div className="relative w-full max-w-md h-full overflow-y-auto md:hidden">
-              {/* Vertical timeline line */}
-              <div className="absolute left-0 top-0 bottom-0 w-[6px] bg-border rounded">
-                <motion.div className="absolute top-0 left-0 w-[6px] bg-teal rounded origin-top" style={{ height: lineHeight }} />
-              </div>
-              {/* Experience items mapped for mobile */}
-              <div className="relative flex flex-col gap-8 ml-10 mt-6 pb-10">
-                {experiences.map((exp, idx) => {
-                  const start = idx === 0 ? 0 : thresholds[idx - 1];
-                  const end = thresholds[idx];
-                  return (
-                    <ExperienceItem
-                      key={`${exp.company}-${exp.role}-m-${idx}`}
-                      exp={exp}
-                      idx={idx}
-                      start={start}
-                      end={end}
-                      scrollYProgress={scrollYProgress}
-                      layout="mobile"
                     />
                   );
                 })}
