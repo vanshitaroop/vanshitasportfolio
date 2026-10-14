@@ -120,13 +120,18 @@ function ExperienceItem({ exp, idx, total, start, end, scrollYProgress }) {
   );
 }
 
-// Mobile timeline item: animates in via whileInView as it naturally scrolls
-// past, instead of being scrubbed by a pinned sticky container. Pinning the
-// whole section on mobile (previous approach) fought with the inner
-// overflow-y-auto list for the scroll gesture, so the section would unpin —
-// handing scroll to the next section — before the last card finished
-// animating in, producing an abrupt cut/overlap.
-function MobileExperienceItem({ exp, idx }) {
+// Mobile timeline item: same scroll-scrubbed reveal as desktop (marker +
+// card fade in as scrollYProgress sweeps through [start, end]). The list
+// itself is moved by a single transform driven by scrollYProgress (see
+// Experience's `listY`) rather than native overflow scrolling, so there's
+// only one thing driving motion during the pin — no fight over the scroll
+// gesture, and the last card's reveal finishes exactly when the pin releases.
+function MobileExperienceItem({ exp, idx, start, end, scrollYProgress }) {
+  const markerScale = useTransform(scrollYProgress, [start, end], [0, 1]);
+  const markerOpacity = useTransform(scrollYProgress, [start, end], [0, 1]);
+  const cardOpacity = useTransform(scrollYProgress, [start, end], [0, 1]);
+  const cardX = useTransform(scrollYProgress, [start, end], [-24, 0]);
+
   const companyLabel = exp.about ? `${exp.company} (${exp.about})` : exp.company;
   const metaLine = [companyLabel, exp.duration].join(" | ") + (exp.location ? ` · ${exp.location}` : "");
 
@@ -134,19 +139,13 @@ function MobileExperienceItem({ exp, idx }) {
     <div className="relative flex items-start">
       {/* Marker dot on mobile timeline */}
       <motion.div
-        initial={{ scale: 0, opacity: 0 }}
-        whileInView={{ scale: 1, opacity: 1 }}
-        viewport={{ once: true, amount: 0.6 }}
-        transition={{ duration: 0.4 }}
         className="absolute -left-[14px] top-3 z-10 w-7 h-7 rounded-full bg-teal shadow-[0_0_0_8px_rgba(22,224,196,0.15)]"
+        style={{ scale: markerScale, opacity: markerOpacity }}
       />
       {/* Experience card (mobile version) */}
       <motion.article
-        initial={{ opacity: 0, x: -24 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.4, delay: idx * 0.06 }}
         className="bg-surface/80 backdrop-blur border border-border rounded-xl p-4 w-[90vw] max-w-sm ml-6 shadow-lg"
+        style={{ opacity: cardOpacity, x: cardX }}
       >
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-base font-semibold break-words text-foreground">{exp.role}</h3>
@@ -172,11 +171,48 @@ const Experience = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // --- Mobile scroll-scrubbed list measurement ---
+  // The mobile card list is taller than the pinned viewport, so instead of
+  // native overflow-y-auto (which fights the pinned-section scroll gesture —
+  // the bug this replaced), the list's vertical position is driven directly
+  // by scrollYProgress via a transform. That means we need to know how far
+  // it has to travel: content height minus visible viewport height.
+  const mobileListRef = React.useRef(null);
+  const mobileViewportRef = React.useRef(null);
+  const [mobileMaxScroll, setMobileMaxScroll] = React.useState(0);
+  const [mobileSceneHeightPx, setMobileSceneHeightPx] = React.useState(null);
+
+  React.useLayoutEffect(() => {
+    if (!isMobile) return undefined;
+
+    const measure = () => {
+      const viewportH = mobileViewportRef.current?.clientHeight || window.innerHeight;
+      const contentH = mobileListRef.current?.scrollHeight || 0;
+      const scrollable = Math.max(contentH - viewportH, 0);
+      setMobileMaxScroll(scrollable);
+      // scrollYProgress is always normalized 0→1 regardless of the scene's
+      // real height, so stretching the scene beyond the bare minimum needed
+      // to reveal all content just paces the scrub out more comfortably —
+      // it can't introduce a "dead zone" since the list's translateY and
+      // each card's reveal both map off the same 0→1 progress.
+      const comfortablePace = window.innerHeight * experiences.length * 1.3;
+      setMobileSceneHeightPx(Math.max(comfortablePace, window.innerHeight + scrollable));
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (mobileListRef.current) ro.observe(mobileListRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [isMobile]);
+
   // Dynamic scene height for the desktop scroll-scrubbed scene
   const SCENE_HEIGHT_DVH = 100 * experiences.length * 1.2;
 
-  // Get scroll progress for animations (desktop only — the ref is only
-  // attached to a mounted element on desktop, see below)
+  // Get scroll progress for animations
   const { scrollYProgress } = useScroll({ target: sceneRef, offset: ["start start", "end end"] });
 
   // Calculate thresholds for each experience card's animation start/end
@@ -186,31 +222,62 @@ const Experience = () => {
     [numExperiences]
   );
 
-  // Animate timeline line width (desktop)
+  // Animate timeline line width (desktop) / height (mobile)
   const lineWidth = useTransform(scrollYProgress, (v) => `${v * 100}%`);
+  const lineHeight = useTransform(scrollYProgress, (v) => `${v * 100}%`);
+  // Mobile card list slides up through the pinned viewport as scroll progresses
+  const mobileListY = useTransform(scrollYProgress, [0, 1], [0, -mobileMaxScroll]);
 
-  // Mobile: plain document flow, no sticky pin / scroll-jacking — each card
-  // fades in with whileInView as it scrolls past (see MobileExperienceItem).
+  // Mobile: same pinned/scroll-scrubbed scene as desktop, but the list's
+  // motion comes entirely from `mobileListY` (a transform), not native
+  // overflow scrolling — one source of truth for the scroll gesture, so the
+  // pin only releases once the last card has fully revealed.
   if (isMobile) {
     return (
-      <section id="experience" className="relative bg-background text-foreground overflow-hidden px-6 py-16">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-10 -left-10 w-[360px] h-[360px] rounded-full bg-gradient-to-r from-violet to-teal opacity-15 blur-[120px] animate-pulse" />
-          <div className="absolute bottom-0 right-10 w-[420px] h-[420px] rounded-full bg-gradient-to-r from-teal to-violet opacity-15 blur-[140px] animate-pulse delay-300" />
-        </div>
+      <section id="experience" className="relative bg-background text-foreground">
+        <div
+          ref={sceneRef}
+          style={{ height: mobileSceneHeightPx ? `${mobileSceneHeightPx}px` : `${100 * experiences.length * 1.5}dvh` }}
+          className="relative"
+        >
+          <div className="sticky top-0 h-dvh flex flex-col relative overflow-hidden">
+            {/* Ambient background accents, consistent with other sections */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute -top-10 -left-10 w-[360px] h-[360px] rounded-full bg-gradient-to-r from-violet to-teal opacity-15 blur-[120px] animate-pulse" />
+              <div className="absolute bottom-0 right-10 w-[420px] h-[420px] rounded-full bg-gradient-to-r from-teal to-violet opacity-15 blur-[140px] animate-pulse delay-300" />
+            </div>
 
-        <h2 className="relative z-10 text-4xl sm:text-5xl font-semibold text-center mb-10">Experience</h2>
+            {/* Section Title */}
+            <div className="relative z-10 shrink-0 px-6 pt-8">
+              <h2 className="text-4xl sm:text-5xl font-semibold mt-5 text-center">Experience</h2>
+            </div>
 
-        <div className="relative z-10 w-full max-w-md mx-auto">
-          {/* Vertical timeline line */}
-          <div className="absolute left-0 top-0 bottom-0 w-[6px] bg-border rounded">
-            <div className="absolute top-0 left-0 w-[6px] h-full bg-teal rounded" />
-          </div>
-          {/* Experience items mapped for mobile */}
-          <div className="relative flex flex-col gap-8 ml-10">
-            {experiences.map((exp, idx) => (
-              <MobileExperienceItem key={`${exp.company}-${exp.role}-m-${idx}`} exp={exp} idx={idx} />
-            ))}
+            {/* Timeline viewport — fixed height, clips the sliding list */}
+            <div ref={mobileViewportRef} className="relative z-10 flex-1 overflow-hidden px-6 pb-10">
+              <div className="relative w-full max-w-md mx-auto h-full">
+                {/* Vertical timeline line (fixed; fills with overall progress) */}
+                <div className="absolute left-0 top-0 bottom-0 w-[6px] bg-border rounded">
+                  <motion.div className="absolute top-0 left-0 w-[6px] bg-teal rounded origin-top" style={{ height: lineHeight }} />
+                </div>
+                {/* Sliding list of experience items */}
+                <motion.div ref={mobileListRef} style={{ y: mobileListY }} className="relative flex flex-col gap-8 ml-10">
+                  {experiences.map((exp, idx) => {
+                    const start = idx === 0 ? 0 : thresholds[idx - 1];
+                    const end = thresholds[idx];
+                    return (
+                      <MobileExperienceItem
+                        key={`${exp.company}-${exp.role}-m-${idx}`}
+                        exp={exp}
+                        idx={idx}
+                        start={start}
+                        end={end}
+                        scrollYProgress={scrollYProgress}
+                      />
+                    );
+                  })}
+                </motion.div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
