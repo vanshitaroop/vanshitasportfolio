@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 import { FiX } from "react-icons/fi";
 
 export default function OverlayMenu({ isOpen, onClose }) {
@@ -52,6 +53,19 @@ export default function OverlayMenu({ isOpen, onClose }) {
                 </a>
               </motion.li>
             ))}
+            <motion.li
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + 7 * 0.1 }}
+            >
+              <Link
+                to="/feedback"
+                onClick={onClose}
+                className="inline-block bg-gradient-to-r from-teal to-violet text-background px-6 py-2 rounded-full text-base font-medium shadow-lg hover:opacity-90 transition-opacity duration-300"
+              >
+                Send Anonymous Msg
+              </Link>
+            </motion.li>
           </ul>
         </motion.div>
       )}

@@ -118,19 +118,23 @@ export default function Projects() {
       <div className="sticky top-0 h-dvh flex flex-col items-center justify-center">
 
         {/* Section Title */}
-        <h2 className={`text-2xl sm:text-3xl font-semibold z-10 text-center px-14 ${isMobile ? "mt-20" : "mt-8"}`}>
+        <h2 className="text-2xl sm:text-3xl font-semibold z-10 text-center px-14 mt-8">
           Projects &amp; Achievements
         </h2>
 
         {/* Main Project Display Area */}
-        <div className={`relative w-full flex-1 flex items-center justify-center ${isMobile ? "-mt-4" : ""}`}>
+        <div className="relative w-full flex-1 flex items-center justify-center">
           {projects.map((project, idx) => (
             <div
               key={project.title}
               className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ${
                 activeIndex === idx ? "opacity-100 z-20" : "opacity-0 z-0 sm:z-10"
               }`}
-              style={{ width: "85%", maxWidth: "1200px" }}
+              style={
+                isMobile
+                  ? { width: "calc(100% - 28px)" } // ~14px side margins on mobile
+                  : { width: "85%", maxWidth: "1200px" }
+              }
             >
               {/* Animate project title when switching */}
               <AnimatePresence mode="wait">
@@ -142,7 +146,7 @@ export default function Projects() {
                     exit={{ opacity: 0, y: 30 }}
                     transition={{ duration: 0.5, ease: "easeOut" }}
                     className={`block text-center text-[clamp(2rem,6vw,5rem)] text-foreground/95 sm:absolute sm:-top-21 sm:left-[35%] lg:left-[-5%] sm:mb-0 font-bangers italic font-semibold ${
-                      isMobile ? "-mt-25" : ""
+                      isMobile ? "mb-3" : ""
                     }`}
                     style={{ zIndex: 5, textAlign: isMobile ? "center" : "left" }}
                   >
@@ -154,7 +158,7 @@ export default function Projects() {
               {/* Project Image Wrapper — sized to the banner's own aspect ratio so it is never cropped or stretched */}
               <div
                 className={`relative w-full overflow-hidden bg-background/20 shadow-2xl md:shadow-[0_35px_60px_-15px_rgba(0,0,0,0.7)] aspect-[2053/766] ${
-                  isMobile ? "mb-6 rounded-lg" : "mb-10 sm:mb-12 rounded-xl"
+                  isMobile ? "mb-5 rounded-lg" : "mb-10 sm:mb-12 rounded-xl"
                 }`}
                 style={{ zIndex: 10, transition: "box-shadow 250ms ease" }}
               >
@@ -180,22 +184,39 @@ export default function Projects() {
                   }}
                 />
               </div>
+
+              {/* On mobile the button lives right below its banner (in the same
+                  cross-fading block) so spacing stays tight and consistent
+                  instead of being pinned a fixed distance from the screen bottom. */}
+              {isMobile && (
+                <a
+                  href={project.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-fit mx-auto px-6 py-3 font-semibold rounded-lg bg-gradient-to-r from-teal to-violet text-background hover:opacity-90 transition-all"
+                  aria-label={`${project.ctaLabel || "View Project"}: ${project.title}`}
+                >
+                  {project.ctaLabel || "View Project"}
+                </a>
+              )}
             </div>
           ))}
         </div>
 
-        {/* View Project Button */}
-        <div className={`absolute ${isMobile ? "bottom-20" : "bottom-10"}`}>
-          <a
-            href={activeProject?.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block px-6 py-3 font-semibold rounded-lg bg-gradient-to-r from-teal to-violet text-background hover:opacity-90 transition-all"
-            aria-label={`${activeProject?.ctaLabel || "View Project"}: ${activeProject?.title}`}
-          >
-            {activeProject?.ctaLabel || "View Project"}
-          </a>
-        </div>
+        {/* View Project Button — desktop only; mobile renders its own button per-slide above */}
+        {!isMobile && (
+          <div className="absolute bottom-10">
+            <a
+              href={activeProject?.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-6 py-3 font-semibold rounded-lg bg-gradient-to-r from-teal to-violet text-background hover:opacity-90 transition-all"
+              aria-label={`${activeProject?.ctaLabel || "View Project"}: ${activeProject?.title}`}
+            >
+              {activeProject?.ctaLabel || "View Project"}
+            </a>
+          </div>
+        )}
       </div>
     </section>
   );
