@@ -1,7 +1,7 @@
 // src/sections/Home.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import avatar from "../assets/avator.png";
+import avatar from "../assets/avator.webp";
 import { FaLinkedinIn, FaGithub, FaInstagram } from "react-icons/fa6";
 import ParticleBackground from "../components/ParticlesBackground";
 
@@ -252,6 +252,8 @@ const Home = React.forwardRef((props, ref) => {
           <motion.img
             src={avatar}
             alt="Vanshita Roopchandani avatar"
+            fetchPriority="high"
+            decoding="async"
             className="absolute top-1/2 -translate-y-1/2 object-contain select-none pointer-events-none"
             style={{ right: "-30px", width: "min(45vw, 780px)", maxHeight: "90vh" }}
             initial={{ opacity: 0, y: 40, scale: 0.95 }}

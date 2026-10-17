@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import ParticlesBackground from "../components/ParticlesBackground.jsx";
 
 // Importing the contact image asset
-import cali from "../assets/cali.png";
+import cali from "../assets/cali.webp";
 import { FaInstagram, FaArrowUpRightFromSquare } from "react-icons/fa6";
 
 // Formspree form endpoint — https://formspree.io/forms
@@ -91,6 +91,8 @@ export default function Contact() {
           <motion.img
             src={cali}
             alt="Calisthenics training"
+            loading="lazy"
+            decoding="async"
             className="w-72 md:w-140 rounded-2xl shadow-lg object-cover"
             animate={{ y: [0, -10, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}

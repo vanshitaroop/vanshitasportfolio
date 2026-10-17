@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import OverlayMenu from "./OverlayMenu";
 import { FiMenu } from "react-icons/fi";
-import Logo from "../assets/logof.png"; // Adjust path
+import Logo from "../assets/logof.webp"; // Adjust path
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);

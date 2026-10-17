@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import vavatar from "../assets/vavatar-removebg-preview.png";
+import vavatar from "../assets/vavatar-removebg-preview.webp";
 
 export default function About() {
   return (
@@ -36,6 +36,8 @@ export default function About() {
             <img
               src={vavatar}
               alt="Vanshita Roopchandani avatar"
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-contain drop-shadow-2xl"
             />
           </motion.div>

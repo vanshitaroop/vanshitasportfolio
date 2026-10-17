@@ -7,9 +7,9 @@ import { motion, useScroll, AnimatePresence } from "framer-motion";
 // AnimatePresence: to animate components when mounting/unmounting
 
 // Importing project/achievement banner images
-import bannerSidHealthcare from "../assets/banner1.png";
-import bannerAwsCertification from "../assets/banner2.png";
-import bannerXillion from "../assets/banner3.png";
+import bannerSidHealthcare from "../assets/banner1.webp";
+import bannerAwsCertification from "../assets/banner2.webp";
+import bannerXillion from "../assets/banner3.webp";
 
 const MH3 = motion.h3; 
 // Shortcut for <motion.h3> for easier typing

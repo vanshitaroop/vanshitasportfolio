@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import gsap from "gsap";
 import { MorphSVGPlugin } from "gsap/MorphSVGPlugin";
-import logo from "../assets/logof.png";
+import logo from "../assets/logof.webp";
 
 gsap.registerPlugin(MorphSVGPlugin);
 
@@ -16,6 +16,27 @@ export default function IntroAnimation({ onFinish }) {
   const overlayRef = useRef(null);
   const greetingRef = useRef(null);
   const logoRef = useRef(null);
+  const finishedRef = useRef(false);
+
+  // onFinish must fire exactly once. Guarded so the watchdog below and the
+  // real GSAP completion can't both call it.
+  const finish = () => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    onFinish && onFinish();
+  };
+
+  // Safety net: the real completion path is a chain of ~12 timers plus one
+  // GSAP timeline, with no error handling. If any link breaks (a ref not
+  // ready, a tab backgrounded mid-sequence throttling timers, a GSAP hiccup)
+  // there's otherwise nothing to recover and the overlay is stuck forever.
+  // This guarantees the intro always releases the page within a bounded time.
+  useEffect(() => {
+    const maxDuration = greetings.length * 180 + 300 + 1800 + 2000;
+    const watchdog = setTimeout(finish, maxDuration);
+    return () => clearTimeout(watchdog);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Logo fades in once and stays static while the greeting cycles beneath it.
   // xPercent: -50 is kept in both keyframes because GSAP writes its own
@@ -47,23 +68,38 @@ export default function IntroAnimation({ onFinish }) {
       );
 
       greetingTimer = setTimeout(() => {
-        const tl = gsap.timeline({
-          onComplete: () => onFinish && onFinish(),
-        });
+        // If a ref isn't ready or GSAP throws, fall back to finishing
+        // immediately rather than leaving the overlay stuck on screen.
+        try {
+          if (!overlayRef.current || !greetingRef.current) {
+            finish();
+            return;
+          }
 
-        tl.to([overlayRef.current, greetingRef.current], {
-          duration: 1.8,
-          y: "-100vh",
-          ease: "power4.inOut",
-        }).to(
-          overlayRef.current.querySelector("path"),
-          {
+          const path = overlayRef.current.querySelector("path");
+          const tl = gsap.timeline({ onComplete: finish });
+
+          tl.to([overlayRef.current, greetingRef.current], {
             duration: 1.8,
-            morphSVG: "M0,0 L0,300 Q720,900 1440,300 L1440,0 Z",
+            y: "-100vh",
             ease: "power4.inOut",
-          },
-          "<"
-        );
+          });
+
+          if (path) {
+            tl.to(
+              path,
+              {
+                duration: 1.8,
+                morphSVG: "M0,0 L0,300 Q720,900 1440,300 L1440,0 Z",
+                ease: "power4.inOut",
+              },
+              "<"
+            );
+          }
+        } catch (err) {
+          console.error("IntroAnimation transition failed:", err);
+          finish();
+        }
       }, 300);
     }
 

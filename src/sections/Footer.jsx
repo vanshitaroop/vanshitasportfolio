@@ -7,7 +7,7 @@ import {
   FaInstagram,
   FaGithub,
 } from "react-icons/fa6";
-import logo from "../assets/logof.png";
+import logo from "../assets/logof.webp";
 
 /**
  * Social media links configuration

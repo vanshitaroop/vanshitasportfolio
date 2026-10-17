@@ -8,7 +8,7 @@ import {
   FaBuildingColumns,
   FaRocket,
 } from "react-icons/fa6";
-import workshopPhoto from "../assets/startbuildgrow.png";
+import workshopPhoto from "../assets/startbuildgrow.webp";
 
 // Swap this import to replace the event photo — container size, border,
 // and glow stay unchanged regardless of the source image.
