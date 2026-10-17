@@ -17,12 +17,15 @@ export default function IntroAnimation({ onFinish }) {
   const greetingRef = useRef(null);
   const logoRef = useRef(null);
 
-  // Logo fades in once and stays static while the greeting cycles beneath it
+  // Logo fades in once and stays static while the greeting cycles beneath it.
+  // xPercent: -50 is kept in both keyframes because GSAP writes its own
+  // inline `transform`, which would otherwise clobber the `-translate-x-1/2`
+  // Tailwind class used to center the logo (inline styles win over classes).
   useEffect(() => {
     gsap.fromTo(
       logoRef.current,
-      { opacity: 0, y: -12 },
-      { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }
+      { opacity: 0, y: -12, xPercent: -50 },
+      { opacity: 1, y: 0, xPercent: -50, duration: 0.6, ease: "power2.out" }
     );
   }, []);
 
